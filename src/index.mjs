@@ -1,5 +1,12 @@
 import express from "express";
+import { createUserValidationSchema } from "./utils/validationSchemas.mjs";
+import { validationResult, matchedData, checkSchema } from "express-validator";
+import userRouter from "./routes/users.mjs";
+
 const app = express();
+app.use(express.json());
+app.use(userRouter);
+
 
 const PORT = 3000;
 
@@ -11,19 +18,21 @@ const users = [
         {id:5, user_name: "domar"},
 ]
 
-app.get('/',(req,res)=>{
-    res.send({msg : "Root"});
-})
+// app.get('/',(req,res)=>{
+//     res.send({msg : "Root"});
+// })
 //http://localhost:3000/api/users?filter=user_name&value=go
-app.get('/api/users',(req,res)=>{
 
-    const {query:{filter, value}}=req;
-    console.log(filter,value);
-    if(filter && value){
-        res.send(users.filter(((user)=>user[filter].toLowerCase().includes(value))))
-    }
-    res.send(users);
-})
+
+// app.get('/api/users',(req,res)=>{
+
+//     const {query:{filter, value}}=req;
+//     console.log(filter,value);
+//     if(filter && value){
+//         res.send(users.filter(((user)=>user[filter].toLowerCase().includes(value))))
+//     }
+//     res.send(users);
+// })
 
 app.get('/api/users/:id',(req,res)=>{
     const id = Number.parseInt(req.params.id);
@@ -40,11 +49,19 @@ app.get('/api/users/:id',(req,res)=>{
     return res.status(404).send("User Not Found")
 
 })
-app.use(express.json());
 
-app.post('/api/users',(req,res)=>{
-    console.log(req.body)
-    const {body}= req;
+//create User 
+app.post(
+    '/api/users', //Url
+    checkSchema(createUserValidationSchema), //acts like a middleware
+    (req,res)=>{
+    const result = validationResult(req);
+    if(!result.isEmpty()){
+        return res.status(400).send({error: result.array()});
+    }
+    console.log(result);
+    console.log(req);
+    const body= matchedData(req);
     const newUser={id: users[users.length-1].id+1, ...body};
     users.push(newUser);
     return res.status(201).send(newUser);
